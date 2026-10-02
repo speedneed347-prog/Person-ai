@@ -12,17 +12,19 @@ data class ChatMessage(
     val detectedLanguage: String = "en",
     val isVoiceVerified: Boolean = true,
     val isSecurityBlocked: Boolean = false,
-    val actionCardType: String? = null, // APP_LAUNCH, DEVICE_TOGGLE, REMINDER, NOTE, ROOT_COMMAND, SECURITY_ALERT
+    val actionCardType: String? = null, // APP_LAUNCH, DEVICE_TOGGLE, REMINDER, NOTE, ROOT_COMMAND, SECURITY_ALERT, AUTOMATION_ACTION
     val actionCardPayload: String? = null
 )
 
 @Entity(tableName = "local_memories")
 data class LocalMemory(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val category: String, // PREFERENCE, ROUTINE, FREQUENT_APP, FAVORITE_CONTACT, HABIT, NOTE
+    val category: String, // PREFERENCE, HABIT, ROUTINE, NOTE, CONTACT, CONVERSATION_SUMMARY
     val title: String,
     val detail: String,
+    val tags: String = "",
     val confidence: Float = 0.95f,
+    val accessCount: Int = 1,
     val isPinned: Boolean = false,
     val updatedAt: Long = System.currentTimeMillis()
 )

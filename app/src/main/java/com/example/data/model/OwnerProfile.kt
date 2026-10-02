@@ -9,8 +9,12 @@ data class OwnerProfile(
     val ownerName: String = "Owner",
     val ownerFaceEnrolled: Boolean = false,
     val faceMeshVectorHash: String = "",
+    val faceGeometryVector: String = "",
+    val faceSimilarityThreshold: Float = 0.82f,
     val ownerFingerprintEnrolled: Boolean = false,
     val ownerVoiceEnrolled: Boolean = false,
+    val voiceEmbeddingVector: String = "",
+    val voiceSimilarityThreshold: Float = 0.78f,
     val voicePitchMean: Float = 165f, // typical pitch Hz
     val voiceEnergyVariance: Float = 0.42f,
     val voiceVerificationEnabled: Boolean = true,
@@ -19,6 +23,8 @@ data class OwnerProfile(
     val sensitiveActionProtectionEnabled: Boolean = true,
     val localEncryptionEnabled: Boolean = true,
     val rootModeEnabled: Boolean = false,
+    val backgroundServiceEnabled: Boolean = true,
+    val accessibilityEnabled: Boolean = true,
     val setupCompleted: Boolean = false,
     val enrolledAtMillis: Long = System.currentTimeMillis()
 )
@@ -35,5 +41,7 @@ data class AssistantIdentity(
     val autoLanguageDetection: Boolean = true,
     val avatarStyle: String = "SHIELD", // SHIELD, CORE, ORB, HOLO, NEON
     val speechSpeed: Float = 1.0f,
-    val speechPitch: Float = 1.0f
+    val speechPitch: Float = 1.0f,
+    val localGemmaModelName: String = "Gemma 3 1B IT",
+    val preferredAcceleration: String = "NPU" // NPU, GPU, CPU
 )

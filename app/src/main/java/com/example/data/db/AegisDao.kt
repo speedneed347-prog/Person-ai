@@ -44,6 +44,9 @@ interface AegisDao {
     @Query("SELECT * FROM chat_messages ORDER BY timestamp ASC")
     fun getChatMessages(): Flow<List<ChatMessage>>
 
+    @Query("SELECT * FROM chat_messages ORDER BY timestamp DESC LIMIT :limit")
+    suspend fun getRecentChatMessagesOnce(limit: Int = 30): List<ChatMessage>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertChatMessage(message: ChatMessage): Long
 
@@ -51,11 +54,20 @@ interface AegisDao {
     suspend fun clearChatMessages()
 
     // Local Memories
-    @Query("SELECT * FROM local_memories ORDER BY isPinned DESC, updatedAt DESC")
+    @Query("SELECT * FROM local_memories ORDER BY isPinned DESC, accessCount DESC, updatedAt DESC")
     fun getLocalMemories(): Flow<List<LocalMemory>>
+
+    @Query("SELECT * FROM local_memories ORDER BY isPinned DESC, accessCount DESC, updatedAt DESC")
+    suspend fun getLocalMemoriesOnce(): List<LocalMemory>
+
+    @Query("SELECT * FROM local_memories WHERE title LIKE '%' || :query || '%' OR detail LIKE '%' || :query || '%' OR tags LIKE '%' || :query || '%'")
+    suspend fun searchMemories(query: String): List<LocalMemory>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMemory(memory: LocalMemory): Long
+
+    @Query("UPDATE local_memories SET accessCount = accessCount + 1, updatedAt = :timestamp WHERE id = :id")
+    suspend fun incrementMemoryAccess(id: Long, timestamp: Long = System.currentTimeMillis())
 
     @Query("DELETE FROM local_memories WHERE id = :id")
     suspend fun deleteMemory(id: Long)

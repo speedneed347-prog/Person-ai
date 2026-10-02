@@ -72,6 +72,7 @@ fun MemoryVaultScreen(
     onAddMemory: (String, String, String) -> Unit,
     onDeleteMemory: (Long) -> Unit,
     onRequestSensitiveAction: (() -> Unit) -> Unit,
+    onSummarizeMemoryNow: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -148,6 +149,18 @@ fun MemoryVaultScreen(
                             color = AegisEmerald
                         )
                     }
+                }
+
+                Button(
+                    onClick = onSummarizeMemoryNow,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AegisIndigo.copy(alpha = 0.2f),
+                        contentColor = AegisIndigo
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.testTag("auto_summarize_memory_button")
+                ) {
+                    Text("Auto-Summarize", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
 

@@ -92,6 +92,10 @@ fun AegisAppRoot(viewModel: MainViewModel = viewModel()) {
     val lastRootCommand by viewModel.lastRootCommand.collectAsStateWithLifecycle()
     val lastRootOutput by viewModel.lastRootOutput.collectAsStateWithLifecycle()
     val lastRootSuccess by viewModel.lastRootSuccess.collectAsStateWithLifecycle()
+    val gemmaModelStatus by viewModel.gemmaModelStatus.collectAsStateWithLifecycle()
+    val gemmaAcceleration by viewModel.gemmaAcceleration.collectAsStateWithLifecycle()
+    val gemmaMemoryUsageMb by viewModel.gemmaMemoryUsageMb.collectAsStateWithLifecycle()
+    val screenContent by viewModel.screenContent.collectAsStateWithLifecycle()
 
     var selectedTab by remember { mutableIntStateOf(0) } // 0: Chat, 1: Memory, 2: Automations, 3: Security
 
@@ -275,7 +279,13 @@ fun AegisAppRoot(viewModel: MainViewModel = viewModel()) {
                         onLaunchApp = { q, name -> viewModel.launchApp(q, name) },
                         onToggleTorch = { viewModel.toggleTorch(it) },
                         onToggleWifi = { viewModel.openWifi() },
-                        isTorchOn = isTorchOn
+                        isTorchOn = isTorchOn,
+                        gemmaStatus = gemmaModelStatus,
+                        gemmaAcceleration = gemmaAcceleration,
+                        gemmaMemoryUsageMb = gemmaMemoryUsageMb,
+                        onUnloadGemma = { viewModel.gemmaEngine.unloadModel() },
+                        onReadScreen = { viewModel.readActiveScreenContent() },
+                        onSummarizeMemory = { viewModel.summarizeMemoryNow() }
                     )
 
                     1 -> MemoryVaultScreen(
@@ -288,6 +298,9 @@ fun AegisAppRoot(viewModel: MainViewModel = viewModel()) {
                         },
                         onRequestSensitiveAction = { action ->
                             viewModel.requestSensitiveAction(action)
+                        },
+                        onSummarizeMemoryNow = {
+                            viewModel.summarizeMemoryNow()
                         }
                     )
 
@@ -304,7 +317,14 @@ fun AegisAppRoot(viewModel: MainViewModel = viewModel()) {
                         lastRootSuccess = lastRootSuccess,
                         onRequestSensitiveAction = { action ->
                             viewModel.requestSensitiveAction(action)
-                        }
+                        },
+                        isBackgroundServiceEnabled = currentProfile.backgroundServiceEnabled,
+                        onToggleBackgroundService = { viewModel.toggleBackgroundService(it) },
+                        onExecuteAccessibilityAction = { action, target, payload ->
+                            viewModel.executeAccessibilityAction(action, target, payload)
+                        },
+                        onReadScreenContent = { viewModel.readActiveScreenContent() },
+                        screenContent = screenContent
                     )
 
                     3 -> SecurityCenterScreen(

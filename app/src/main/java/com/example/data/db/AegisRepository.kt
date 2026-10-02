@@ -27,9 +27,13 @@ class AegisRepository(private val dao: AegisDao) {
     suspend fun setAssistantIdentity(identity: AssistantIdentity) = dao.setAssistantIdentity(identity)
 
     suspend fun insertChatMessage(message: ChatMessage): Long = dao.insertChatMessage(message)
+    suspend fun getRecentChatMessagesOnce(limit: Int = 30): List<ChatMessage> = dao.getRecentChatMessagesOnce(limit)
     suspend fun clearChatMessages() = dao.clearChatMessages()
 
+    suspend fun getLocalMemoriesOnce(): List<LocalMemory> = dao.getLocalMemoriesOnce()
+    suspend fun searchMemories(query: String): List<LocalMemory> = dao.searchMemories(query)
     suspend fun insertMemory(memory: LocalMemory): Long = dao.insertMemory(memory)
+    suspend fun incrementMemoryAccess(id: Long) = dao.incrementMemoryAccess(id)
     suspend fun deleteMemory(id: Long) = dao.deleteMemory(id)
     suspend fun clearAllMemories() = dao.clearAllMemories()
 
@@ -58,6 +62,8 @@ class AegisRepository(private val dao: AegisDao) {
                     sensitiveActionProtectionEnabled = true,
                     localEncryptionEnabled = true,
                     rootModeEnabled = false,
+                    backgroundServiceEnabled = true,
+                    accessibilityEnabled = true,
                     setupCompleted = false
                 )
             )
@@ -76,7 +82,9 @@ class AegisRepository(private val dao: AegisDao) {
                     autoLanguageDetection = true,
                     avatarStyle = "SHIELD",
                     speechSpeed = 1.0f,
-                    speechPitch = 1.0f
+                    speechPitch = 1.0f,
+                    localGemmaModelName = "Gemma 3 1B IT",
+                    preferredAcceleration = "NPU"
                 )
             )
         }

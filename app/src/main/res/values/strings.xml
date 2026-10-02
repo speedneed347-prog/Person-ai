@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Aegis AI Assistant</string>
+    <string name="accessibility_service_description">Aegis AI Assistant automation engine to interact with on-screen elements, launch applications, and perform authorized device workflows.</string>
 </resources>

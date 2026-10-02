@@ -87,10 +87,16 @@ fun AutomationScreen(
     lastRootOutput: String?,
     lastRootSuccess: Boolean,
     onRequestSensitiveAction: (() -> Unit) -> Unit,
+    isBackgroundServiceEnabled: Boolean = true,
+    onToggleBackgroundService: (Boolean) -> Unit = {},
+    onExecuteAccessibilityAction: (actionType: String, target: String, payload: String?) -> Unit = { _, _, _ -> },
+    onReadScreenContent: () -> Unit = {},
+    screenContent: List<String> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     var volumeSlider by remember { mutableFloatStateOf(70f) }
     var shellInput by remember { mutableStateOf("uname -a") }
+    var accessibilityTarget by remember { mutableStateOf("Settings") }
 
     val presetRoutines = listOf(
         AutomationRoutine(
@@ -269,6 +275,133 @@ fun AutomationScreen(
                         Icon(Icons.Default.SettingsRemote, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Bluetooth Panel", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            // Background Service & Auto-Start
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, AegisCyan.copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
+                    colors = CardDefaults.cardColors(containerColor = AegisSurfaceCard),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Persistent Background Guard",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Keeps wake word detector active when app is closed • Auto-starts on device reboot",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Switch(
+                            checked = isBackgroundServiceEnabled,
+                            onCheckedChange = onToggleBackgroundService,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = AegisCyan,
+                                checkedTrackColor = AegisCyan.copy(alpha = 0.35f)
+                            ),
+                            modifier = Modifier.testTag("switch_bg_service")
+                        )
+                    }
+                }
+            }
+
+            // Accessibility Automation Engine Card
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, AegisIndigo.copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
+                    colors = CardDefaults.cardColors(containerColor = AegisSurfaceCard),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Accessibility Automation Engine",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(AegisIndigo.copy(alpha = 0.2f))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text("SYSTEM INTEGRATION", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = AegisIndigo)
+                            }
+                        }
+
+                        Text(
+                            text = "Automates clicking buttons, filling text fields, and reading on-screen elements.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = onReadScreenContent,
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B), contentColor = AegisCyan),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f).testTag("read_screen_button")
+                            ) {
+                                Text("Read Screen", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            Button(
+                                onClick = {
+                                    onRequestSensitiveAction {
+                                        onExecuteAccessibilityAction("CLICK_TEXT", accessibilityTarget, null)
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = AegisIndigo.copy(alpha = 0.25f), contentColor = AegisIndigo),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f).testTag("click_text_button")
+                            ) {
+                                Text("Simulate Click", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        if (screenContent.isNotEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFF070B14))
+                                    .padding(8.dp)
+                            ) {
+                                Text(
+                                    text = "Screen Elements: " + screenContent.take(5).joinToString(", "),
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                    color = Color.LightGray
+                                )
+                            }
+                        }
                     }
                 }
             }

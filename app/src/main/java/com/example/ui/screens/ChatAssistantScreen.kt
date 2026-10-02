@@ -77,6 +77,8 @@ import com.example.ui.theme.AegisCyan
 import com.example.ui.theme.AegisEmerald
 import com.example.ui.theme.AegisIndigo
 import com.example.ui.theme.AegisOutline
+import com.example.ai.AccelerationDevice
+import com.example.ai.ModelStatus
 import com.example.ui.theme.AegisRose
 import com.example.ui.theme.AegisSurface
 import com.example.ui.theme.AegisSurfaceCard
@@ -99,6 +101,12 @@ fun ChatAssistantScreen(
     onToggleTorch: (Boolean) -> Unit,
     onToggleWifi: (Boolean) -> Unit,
     isTorchOn: Boolean,
+    gemmaStatus: ModelStatus = ModelStatus.READY,
+    gemmaAcceleration: AccelerationDevice = AccelerationDevice.NPU,
+    gemmaMemoryUsageMb: Int = 680,
+    onUnloadGemma: () -> Unit = {},
+    onReadScreen: () -> Unit = {},
+    onSummarizeMemory: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var textInput by remember { mutableStateOf("") }
@@ -112,13 +120,14 @@ fun ChatAssistantScreen(
 
     val suggestionChips = listOf(
         "Open WhatsApp",
+        "Read Screen Content",
+        "Summarize Habits & Memory",
         "হোয়াটসঅ্যাপ খোলো",
         "YouTube open karo",
         "ব্লুটুথ চালু করো",
         "Torch on",
         "Remind 6 PM to stretch",
-        "Check security status",
-        "Battery & system status"
+        "Check security status"
     )
 
     Surface(
@@ -205,7 +214,7 @@ fun ChatAssistantScreen(
                 }
             }
 
-            // Status ribbon
+            // Status ribbon with Gemma Hardware Acceleration and RAM indicator
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -219,11 +228,36 @@ fun ChatAssistantScreen(
                     isOwnerOnly = profile.strictOwnerOnlyMode
                 )
 
-                Text(
-                    text = "100% On-Device Neural Processing",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(AegisIndigo.copy(alpha = 0.2f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "Gemma 3 • ${gemmaAcceleration.name} (${if (gemmaMemoryUsageMb > 0) "${gemmaMemoryUsageMb}MB" else "Conserved"})",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
+                            color = AegisCyan
+                        )
+                    }
+
+                    if (gemmaMemoryUsageMb > 0) {
+                        Text(
+                            text = "Free RAM",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
+                            color = AegisAmber,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color(0xFF1E293B))
+                                .clickable { onUnloadGemma() }
+                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
+                    }
+                }
             }
 
             // Message Stream
@@ -417,7 +451,13 @@ fun ChatAssistantScreen(
                             .clip(RoundedCornerShape(20.dp))
                             .background(Color(0xFF131D31))
                             .border(1.dp, AegisCyan.copy(alpha = 0.25f), RoundedCornerShape(20.dp))
-                            .clickable { onSendMessage(chip) }
+                            .clickable {
+                                when (chip) {
+                                    "Read Screen Content" -> onReadScreen()
+                                    "Summarize Habits & Memory" -> onSummarizeMemory()
+                                    else -> onSendMessage(chip)
+                                }
+                            }
                             .padding(horizontal = 12.dp, vertical = 7.dp)
                             .testTag("chip_${chip.take(8).replace(" ", "_")}")
                     ) {
