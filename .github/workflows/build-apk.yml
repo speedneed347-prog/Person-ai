@@ -1,0 +1,220 @@
+name: Build and Release Debug APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Verify Java environment
+        run: |
+          echo "=== Java Environment Verification ==="
+          java -version
+          echo "JAVA_HOME: $JAVA_HOME"
+          
+          if [ -z "$JAVA_HOME" ]; then
+            echo "ERROR: JAVA_HOME is not set."
+            exit 1
+          fi
+
+          JAVA_VERSION_OUTPUT=$(java -version 2>&1 | head -n 1)
+          echo "Detected version string: $JAVA_VERSION_OUTPUT"
+          
+          JAVA_MAJOR=$(echo "$JAVA_VERSION_OUTPUT" | sed -E 's/.*version "([0-9]+).*/\1/')
+          if [ -z "$JAVA_MAJOR" ] || ! [[ "$JAVA_MAJOR" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: Unable to parse Java major version from '$JAVA_VERSION_OUTPUT'."
+            exit 1
+          fi
+
+          echo "Parsed Java major version: $JAVA_MAJOR"
+          if [ "$JAVA_MAJOR" -lt 17 ]; then
+            echo "ERROR: Java 17 or newer is required. Found Java $JAVA_MAJOR."
+            exit 1
+          fi
+          echo "Java 17+ environment verified successfully."
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
+
+      - name: Create temporary debug keystore
+        run: |
+          echo "=== Temporary Debug Keystore Check ==="
+          if [ -f "./debug.keystore" ]; then
+            echo "Existing debug.keystore found."
+          else
+            echo "debug.keystore not found. Generating temporary debug keystore..."
+            keytool -genkeypair -v \
+              -keystore ./debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+          if [ ! -f "./debug.keystore" ]; then
+            echo "ERROR: debug.keystore could not be found or created."
+            exit 1
+          fi
+          echo "debug.keystore verified successfully."
+
+      - name: Build debug APK
+        run: |
+          gradle :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Verify the APK
+        run: |
+          EXPECTED_APK="app/build/outputs/apk/debug/app-debug.apk"
+          echo "Checking for expected APK at: $EXPECTED_APK"
+
+          if [ ! -f "$EXPECTED_APK" ]; then
+            echo "ERROR: Expected APK not found at $EXPECTED_APK"
+            echo "Searching only inside app/build/outputs/apk..."
+            if [ -d "app/build/outputs/apk" ]; then
+              find app/build/outputs/apk -type f -name "*.apk"
+            else
+              echo "Directory app/build/outputs/apk does not exist."
+            fi
+            exit 1
+          fi
+
+          if [ ! -s "$EXPECTED_APK" ]; then
+            echo "ERROR: APK file exists but is empty: $EXPECTED_APK"
+            exit 1
+          fi
+
+          case "$EXPECTED_APK" in
+            *.apk) ;;
+            *) echo "ERROR: File does not have .apk extension: $EXPECTED_APK"; exit 1 ;;
+          esac
+
+          echo "APK successfully verified: $EXPECTED_APK"
+          ls -la "$EXPECTED_APK"
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Prepare APK release asset
+        id: prepare_asset
+        run: |
+          TMP_RELEASE_DIR="/tmp/aegis_apk_release"
+          mkdir -p "$TMP_RELEASE_DIR"
+          
+          ORIGINAL_APK="app/build/outputs/apk/debug/app-debug.apk"
+          TARGET_ASSET="$TMP_RELEASE_DIR/app-debug.apk"
+          
+          cp "$ORIGINAL_APK" "$TARGET_ASSET"
+          
+          if [ ! -s "$TARGET_ASSET" ]; then
+            echo "ERROR: Prepared release asset is missing or empty at $TARGET_ASSET"
+            exit 1
+          fi
+
+          echo "apk_path=$TARGET_ASSET" >> "$GITHUB_OUTPUT"
+          echo "Prepared release asset: $TARGET_ASSET"
+
+      - name: Publish APK to GitHub Releases
+        id: publish_release
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "=== GitHub CLI & Asset Validation ==="
+          gh --version
+          
+          RELEASE_ASSET="${{ steps.prepare_asset.outputs.apk_path }}"
+          if [ ! -f "$RELEASE_ASSET" ]; then
+            echo "ERROR: Release asset does not exist: $RELEASE_ASSET"
+            exit 1
+          fi
+          
+          if [ ! -s "$RELEASE_ASSET" ]; then
+            echo "ERROR: Release asset is empty: $RELEASE_ASSET"
+            exit 1
+          fi
+
+          ASSET_FILENAME=$(basename "$RELEASE_ASSET")
+          if [ "$ASSET_FILENAME" != "app-debug.apk" ]; then
+            echo "ERROR: Asset filename must be exactly app-debug.apk, found: $ASSET_FILENAME"
+            exit 1
+          fi
+
+          RELEASE_TAG="debug-apk-build-${{ github.run_number }}-${{ github.run_attempt }}"
+          RELEASE_TITLE="Debug APK Build #${{ github.run_number }}"
+          
+          echo "Creating GitHub Release with tag: $RELEASE_TAG"
+          
+          NOTES=$(cat << 'EOF'
+          ## Aegis AI Assistant — Automated Debug APK Build
+
+          - **Build Type:** Automated Debug APK
+          - **Builder:** GitHub Actions
+          - **Run Number:** ${{ github.run_number }}
+          - **Run Attempt:** ${{ github.run_attempt }}
+          - **Source Commit:** ${{ github.sha }}
+          - **Signing:** Signed only with a temporary debug keystore
+          - **Purpose:** Intended for development and testing; not a Play Store production release.
+          EOF
+          )
+
+          gh release create "$RELEASE_TAG" "$RELEASE_ASSET" \
+            --title "$RELEASE_TITLE" \
+            --notes "$NOTES" \
+            --target "${{ github.sha }}" \
+            --latest
+
+      - name: Report APK download result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ steps.publish_release.outcome }}" = "success" ]; then
+            RELEASE_TAG="debug-apk-build-${{ github.run_number }}-${{ github.run_attempt }}"
+            echo "=== GitHub Release Succeeded ==="
+            gh release view "$RELEASE_TAG" || true
+            echo "Release Tag: $RELEASE_TAG"
+            echo "Release Title: Debug APK Build #${{ github.run_number }}"
+            echo "Asset: app-debug.apk"
+            
+            DIRECT_URL="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/app-debug.apk"
+            echo "Direct Download URL: $DIRECT_URL"
+            
+            echo "### DIRECT APK DOWNLOAD" >> "$GITHUB_STEP_SUMMARY"
+            echo "$DIRECT_URL" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "The GitHub Actions artifact **app-debug-apk** is also preserved as a backup." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "WARNING: GitHub Release creation did not succeed or was skipped."
+            if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
+              echo "The debug APK was built successfully, and the GitHub Actions backup artifact 'app-debug-apk' remains available."
+              echo "### Build Notification" >> "$GITHUB_STEP_SUMMARY"
+              echo "The APK build succeeded. Actions artifact **app-debug-apk** is available for download from this run." >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "APK build was not completed."
+            fi
+          fi
