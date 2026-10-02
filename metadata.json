@@ -1,0 +1,6 @@
+{
+  "name": "Aegis AI Assistant",
+  "description": "Privacy-first on-device personal AI assistant with biometric owner verification, voice signature matching, multi-language conversational intelligence, and local device automation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

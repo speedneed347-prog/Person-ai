@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54">
+        <!-- Aegis Shield Silhouette -->
+        <path
+            android:fillColor="#38BDF8"
+            android:pathData="M54,26 L74,34 C74,54 65,69 54,78 C43,69 34,54 34,34 Z" />
+        <!-- Shield Inner Core -->
+        <path
+            android:fillColor="#0F172A"
+            android:pathData="M54,30 L70,37 C70,52 62,65 54,73 C46,65 38,52 38,37 Z" />
+        <!-- Central AI Spark / Biometric Node -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,40 L56.5,49 L65.5,51.5 L56.5,54 L54,63 L51.5,54 L42.5,51.5 L51.5,49 Z" />
+        <!-- Security Pulse Arc -->
+        <path
+            android:pathData="M46,45 C48,43 51,42 54,42 C57,42 60,43 62,45"
+            android:strokeWidth="1.8"
+            android:strokeColor="#818CF8"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+        <path
+            android:pathData="M44,60 C46.5,63 50,65 54,65 C58,65 61.5,63 64,60"
+            android:strokeWidth="1.8"
+            android:strokeColor="#818CF8"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000" />
+    </group>
+</vector>
